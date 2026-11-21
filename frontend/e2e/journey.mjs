@@ -214,10 +214,17 @@ try {
   await page.getByText("How much do the models agree?").waitFor({ timeout: 20000 });
   await page.waitForTimeout(800);
   await shot("09-lab", true);
-  await page.getByLabel("Viewer").selectOption({ index: 3 });
-  await page.waitForTimeout(2000);
-  await shot("10-lab-viewer");
-  step("lab ok");
+  // MovieLens viewers are offered only where the bundle has their histories: a public deployment leaves
+  // them out (the MovieLens licence forbids redistributing them), so there the Lab compares on "you" only
+  const viewers = await page.getByLabel("Viewer").locator("option").count();
+  if (viewers > 3) {
+    await page.getByLabel("Viewer").selectOption({ index: 3 });
+    await page.waitForTimeout(2000);
+    await shot("10-lab-viewer");
+    step("lab ok");
+  } else {
+    step("lab ok (signed-in viewer only: this deployment has no MovieLens histories)");
+  }
 
   // results
   await page.goto(`${BASE}/results`);

@@ -2,13 +2,16 @@
 
 **Current state:**
 - Website: **live** at https://redbox-recommender.vercel.app (Vercel project `redbox-recommender`).
-- API: **Render** (always on), from the Blueprint `render.yaml`: a Standard instance (2 GB) built from this
+- API: **live on Render** at https://redbox-api.onrender.com (always on), from the Blueprint `render.yaml`: a Standard instance (2 GB) built from this
   repository (`deploy/render/Dockerfile`), with a 2 GB persistent disk for accounts, ratings, new releases
   and the poster cache. The trained models are not in git: they live in the private Hugging Face dataset
   `aravindreddy111/redbox-bundle`, which `deploy/render/start.py` downloads onto the disk the first time.
   - One-time setup: render.com > **New** > **Blueprint** > this repository > enter `HF_TOKEN` (a Hugging
     Face token that can *read* that dataset) > **Apply**.
   - Then point the website at the service's address (Vercel `NEXT_PUBLIC_API_URL`) and redeploy it.
+  - Billing from India: card payments need approval each time (RBI rules), so pay each month's
+    invoice in the Render dashboard ("Pay most recent invoice"), or the service can be suspended.
+  - Verified with the laptop switched off: smoke test 18/18 and the full browser journey.
   - Update the models: upload a new bundle to the dataset (`HfApi().upload_folder(...)`) and redeploy.
 - Running the API from a laptop instead (no host at all): `uv run --project backend python
   deploy/local/start_public.py` (a free Cloudflare tunnel; works while the laptop runs it).

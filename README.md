@@ -24,10 +24,8 @@ Red Box has three parts:
 
 **Status:** Weeks 0–6 built and tested, then made production-grade (real accounts, online A/B testing,
 recent catalogue, hardening).
-- **Deployment:** the website is live at https://redbox-recommender.vercel.app. Its API runs on the
-  author's laptop behind a free Cloudflare tunnel: `uv run --project backend python
-  deploy/local/start_public.py` starts it and points the website at it. Always-on options (Google Cloud
-  Run, a Hugging Face Space) are ready too. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+- **Live:** https://redbox-recommender.vercel.app (website on Vercel; API on Render at
+  https://redbox-api.onrender.com, always on). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 - **Not in this repository:** datasets and trained bundles (MovieLens may not be redistributed; rebuild
   them with the commands below), and the landing page's film stills, which are copyrighted: add your own
   in `frontend/public/hero/stills/` (listed in `frontend/src/lib/stills.ts`).
