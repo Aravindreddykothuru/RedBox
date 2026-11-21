@@ -1,0 +1,34 @@
+# Render Blueprint for the Red Box API (render.com > New > Blueprint > this repository).
+# The website stays on Vercel; this is the always-on API it calls. Standard = 2 GB memory, 1 CPU.
+services:
+  - type: web
+    name: redbox-api
+    runtime: docker
+    plan: standard
+    region: singapore
+    branch: main
+    dockerfilePath: ./deploy/render/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    # accounts, ratings, the model bundle, new releases and the poster cache: kept across restarts
+    disk:
+      name: redbox-data
+      mountPath: /var/data
+      sizeGB: 2
+    envVars:
+      - key: BUNDLE_REPO
+        value: aravindreddy111/redbox-bundle
+      # a Hugging Face token that can read that private dataset: entered when the Blueprint is created
+      - key: HF_TOKEN
+        sync: false
+      - key: REDBOX_BUNDLE_DIR
+        value: /var/data/bundle
+      - key: REDBOX_DATABASE_URL
+        value: sqlite:////var/data/redbox.db
+      - key: REDBOX_POSTER_DIR
+        value: /var/data/posters
+      - key: REDBOX_JWT_SECRET
+        generateValue: true
+      - key: REDBOX_CORS_ORIGINS
+        value: '["https://redbox-recommender.vercel.app"]'

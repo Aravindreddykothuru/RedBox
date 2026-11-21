@@ -2,23 +2,18 @@
 
 **Current state:**
 - Website: **live** at https://redbox-recommender.vercel.app (Vercel project `redbox-recommender`).
-- API: **runs on this laptop, reached through a free Cloudflare tunnel.** Free hosts no longer run a
-  1 GB Python API without a card (Hugging Face now charges for Docker Spaces; Google Cloud Run needs a
-  billing account). One command starts the API, opens the tunnel and points the website at it:
-
-  ```bash
-  uv run --project backend python deploy/local/start_public.py
-  ```
-
-  It takes about three minutes (the website is rebuilt with the tunnel's new address), then prints
-  `LIVE: https://redbox-recommender.vercel.app`. The site works while that window stays open; Ctrl+C
-  stops it. The tunnel program is Cloudflare's `cloudflared` (no account needed): download
-  `cloudflared-windows-amd64.exe` from github.com/cloudflare/cloudflared/releases into
-  `tools/cloudflared/cloudflared.exe`.
-- Always-on alternatives, ready to use: Google Cloud Run (`deploy/cloudrun/deploy.py`, needs an open
-  billing account; usage stays in the free tier) or a Hugging Face Space with a PRO plan (below).
-
-The Hugging Face Space route below still works with a PRO plan.
+- API: **Render** (always on), from the Blueprint `render.yaml`: a Standard instance (2 GB) built from this
+  repository (`deploy/render/Dockerfile`), with a 2 GB persistent disk for accounts, ratings, new releases
+  and the poster cache. The trained models are not in git: they live in the private Hugging Face dataset
+  `aravindreddy111/redbox-bundle`, which `deploy/render/start.py` downloads onto the disk the first time.
+  - One-time setup: render.com > **New** > **Blueprint** > this repository > enter `HF_TOKEN` (a Hugging
+    Face token that can *read* that dataset) > **Apply**.
+  - Then point the website at the service's address (Vercel `NEXT_PUBLIC_API_URL`) and redeploy it.
+  - Update the models: upload a new bundle to the dataset (`HfApi().upload_folder(...)`) and redeploy.
+- Running the API from a laptop instead (no host at all): `uv run --project backend python
+  deploy/local/start_public.py` (a free Cloudflare tunnel; works while the laptop runs it).
+- Other always-on options, ready to use: Google Cloud Run (`deploy/cloudrun/deploy.py`) and a Hugging
+  Face Space with a PRO plan (below).
 
 ```
 Browser ──► Next.js on Vercel ──► FastAPI on a Hugging Face Space (Docker) ──► Postgres (Supabase or Neon)

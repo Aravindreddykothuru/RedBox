@@ -5,6 +5,8 @@
 **/.ruff_cache
 **/.ipynb_checkpoints
 data/
+dist/
+tools/
 mlruns/
 docs/
 frontend/
