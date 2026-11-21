@@ -36,3 +36,6 @@ Thumbs.db
 # The live site has them; a clone gets the landing page without the wall (add your own stills here).
 frontend/public/hero/stills/
 docs/figures/app/landing.png
+
+# downloaded helper programs (Cloudflare tunnel)
+tools/

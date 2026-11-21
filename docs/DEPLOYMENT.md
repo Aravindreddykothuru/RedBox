@@ -2,19 +2,21 @@
 
 **Current state:**
 - Website: **live** at https://redbox-recommender.vercel.app (Vercel project `redbox-recommender`).
-- API: **ready for Google Cloud Run.** Hugging Face now requires a paid PRO plan for Docker Spaces, so the
-  API runs on Cloud Run's free tier instead (`deploy/cloudrun/deploy.py`; the same container, smoke-tested
-  locally). One-time setup, in your own terminal: install the Google Cloud CLI, run `gcloud init` (sign in,
-  create a project) and link the project to a billing account. Then, from the repository root:
+- API: **runs on this laptop, reached through a free Cloudflare tunnel.** Free hosts no longer run a
+  1 GB Python API without a card (Hugging Face now charges for Docker Spaces; Google Cloud Run needs a
+  billing account). One command starts the API, opens the tunnel and points the website at it:
 
   ```bash
-  uv run --project ml python deploy/cloudrun/deploy.py --project <your-project-id> \
-      --cors https://redbox-recommender.vercel.app --backup-repo aravindreddy111/redbox-data
+  uv run --project backend python deploy/local/start_public.py
   ```
 
-  Finally point the website at the address it prints (`vercel env` `NEXT_PUBLIC_API_URL`) and redeploy it.
-- Database: SQLite in the API's container, backed up to the private Hugging Face dataset
-  `aravindreddy111/redbox-data` (option B below; Hugging Face datasets stay free).
+  It takes about three minutes (the website is rebuilt with the tunnel's new address), then prints
+  `LIVE: https://redbox-recommender.vercel.app`. The site works while that window stays open; Ctrl+C
+  stops it. The tunnel program is Cloudflare's `cloudflared` (no account needed): download
+  `cloudflared-windows-amd64.exe` from github.com/cloudflare/cloudflared/releases into
+  `tools/cloudflared/cloudflared.exe`.
+- Always-on alternatives, ready to use: Google Cloud Run (`deploy/cloudrun/deploy.py`, needs an open
+  billing account; usage stays in the free tier) or a Hugging Face Space with a PRO plan (below).
 
 The Hugging Face Space route below still works with a PRO plan.
 
