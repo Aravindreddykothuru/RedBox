@@ -30,7 +30,95 @@ recent catalogue, hardening).
   them with the commands below), and the landing page's film stills, which are copyrighted: add your own
   in `frontend/public/hero/stills/` (listed in `frontend/src/lib/stills.ts`).
 
+**How it works, in one document:** [docs/RedBox_Technical_Overview.pdf](docs/RedBox_Technical_Overview.pdf) (13 pages:
+what we used, the architecture, every model, how a recommendation is made, results, how to use it).
 Plan: [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) · Report: [docs/report/](docs/report/)
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U((Visitor)) -->|pages| W["Website<br/>Next.js on Vercel"]
+    U -->|"JSON + sign-in token"| A
+    subgraph R["API: FastAPI on Render (Docker, 2 GB, always on)"]
+        A[Endpoints] --> E["Recommendation engine<br/>5 generators, LightGBM ranker, MMR<br/>MiniLM search, new-release models"]
+        A --> D[("Persistent disk<br/>SQLite, model bundle, posters")]
+    end
+    E -. daily .-> K["Wikidata + Wikipedia<br/>new releases, stories, posters"]
+    H[("Hugging Face dataset, private<br/>trained model bundle")] -->|first start| D
+    T["Research pipeline ml/<br/>train, tune, evaluate, export"] -->|upload| H
+```
+
+- **Research pipeline (`ml/`, offline).** Downloads and checks the data, splits each user's history by time
+  (80/10/10), trains and tunes the eleven models with equal budgets, evaluates them on the full catalogue, builds
+  the hybrid, and exports one **model bundle** (generator weights, the LightGBM ranker, film data, text vectors,
+  forecasts). The bundle goes to a private Hugging Face dataset; raw MovieLens histories are never shipped.
+- **API (`backend/`, Render).** Downloads the bundle onto its disk on first start. It never retrains: every
+  request reads the user's ratings from SQLite and the engine scores them in memory (about 0.3 s). A daily job
+  adds new releases; app ratings of new films update them at once.
+- **Website (`frontend/`, Vercel).** Pages from Vercel; the browser calls the API with the user's signed token.
+
+## How the ML works
+
+**Eleven models, one interface** (`fit`, `score`, `recommend`), compared under one leakage-free protocol. The
+five in bold are the live hybrid's generators.
+
+| Model | Family | Idea |
+|---|---|---|
+| **MostPop** | Baseline | the films most people liked |
+| UserKNN / ItemKNN | Neighbourhood | users (or films) that share likes are similar; ItemKNN powers "similar films" |
+| **EASE** | Linear autoencoder | an item–item weight matrix from one closed-form solve: `B = I - P·diag(1/diag(P))`, `P = (XᵀX + λI)⁻¹` |
+| BPR-MF | Latent factors | vectors trained so liked films outrank unliked ones |
+| **iALS** | Latent factors | 64-number taste vectors fitted to implicit feedback; a new history is folded in exactly in one solve |
+| NeuMF / Mult-VAE | Deep | a neural network on embeddings / a variational autoencoder over the whole history |
+| LightGCN | Graph | embeddings spread over the user–film graph (research hybrid only: needs retraining for new users) |
+| **Markov chain** | Sequential | `P(next = j \| last = i) = count(i→j) / count(i)` |
+| **SASRec** | Sequential Transformer | self-attention over the ordered history (2 blocks, 64 dims, up to 200 films) predicts the next film; trained in PyTorch, served in NumPy |
+
+**How a recommendation is made** (every request, from the user's current history):
+
+```mermaid
+flowchart LR
+    H["Liked films, in order<br/>(ratings ≥ 4, imports)"] --> G1[EASE] & G2[SASRec] & G3[Markov chain] & G4[iALS fold-in] & G5[MostPop]
+    G1 & G2 & G3 & G4 & G5 --> C["Stage 1: top 40 of each<br/>≈ 123 candidates"]
+    C --> F["41 features per candidate"] --> L["Stage 2: LightGBM LambdaRank"]
+    L --> M["Stage 3: MMR diversity (slider)"] --> O["Top picks + reasons<br/>+ TreeSHAP 'why'"]
+```
+
+1. **Candidates.** Each generator scores all 8,487 films; its 40 best unseen films become candidates (about 123
+   after overlaps, containing 43.8% of the films users liked next).
+2. **Features (41).** Each generator's z-scored score, rank and "in its top 40"; how many agree; popularity and
+   popularity relative to the user's taste; similarity to the last liked film; release year and genres; genre
+   match; history length.
+3. **Ranking.** LightGBM with the LambdaRank objective (optimises NDCG) orders the candidates. It was trained to
+   put each user's *validation-period* likes on top, data the generators never saw, so it learns which model to
+   trust when (SASRec's rank is its strongest signal, then EASE).
+4. **Diversity.** MMR picks films one by one with `λ·relevance − (1−λ)·similarity to films already picked`; the
+   home page's Diversity slider sets λ (λ = 0.8: −4% accuracy, +16% variety).
+5. **Explanations.** A reason on every film ("Because you liked …"), and on the film page TreeSHAP splits the
+   ranker's score exactly by signal.
+
+**Situations without enough data are handled by ML too:**
+- **Brand-new users and the trending row:** a crowd forecast (the hybrid's top 10 for 4,000 viewers, by genre
+  taste): new users find a liked film in the top 10 17.2% of the time vs 10.3% for popularity.
+- **Search by description:** MiniLM sentence vectors of each film's tags and story (late fusion), compared with
+  the query's vector.
+- **Watch together:** pooled candidates scored for every member, combined by average, least misery or most pleasure.
+- **New releases (after the data ends in 2023):** found daily on Wikidata in six languages → placed in iALS's taste
+  space from their story (ridge regression on MiniLM vectors, hit@10 18.9% vs 5.0% for text similarity) → refined
+  by every app rating (collaborative topic regression) → after 20 app likes, retraining makes them regular films.
+
+## What we used
+
+| Area | Tools |
+|---|---|
+| Data | MovieLens-1M, MovieLens-32M (2018–2023), Amazon Reviews 2023 (Video Games), MovieLens tags, Wikidata, Wikipedia |
+| Machine learning | Python 3.12, NumPy, SciPy, pandas, PyTorch (training deep models), LightGBM (LambdaRank, TreeSHAP), Optuna, MLflow |
+| Language model | all-MiniLM-L6-v2 via ONNX Runtime and HF Tokenizers |
+| API | FastAPI, Pydantic, SQLAlchemy, SQLite (Postgres-ready), PyJWT, scrypt, Pillow |
+| Website | Next.js 16 (React), TypeScript, Tailwind CSS 4, TanStack Query, Recharts |
+| Hosting | Vercel (website), Render (API: Docker, 2 GB, persistent disk), a private Hugging Face dataset (models), GitHub |
+| Quality | pytest (131 ML + 66 API tests), Playwright browser journey, deployment smoke test, ruff, ESLint, TypeScript |
 
 ## Headline results (test set, NDCG@10)
 
@@ -49,7 +137,7 @@ Plan: [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) · Report: [docs/report/](doc
   - On Amazon this artifact is absent.
 - **The app's own models (MovieLens-32M, 2018–2023, 42,144 users, 8,487 films):**
   - The hybrid it serves scores NDCG@10 **0.1293**, against 0.1115 for SASRec on the same 15,000 test users
-    (+16.0%, p = 1.3 × 10⁻⁸⁷, Wilcoxon with Holm correction).
+    (+15.9%, p = 1.3 × 10⁻⁸⁷, Wilcoxon with Holm correction).
   - 48% of those users find a film they went on to like in its top ten.
   - New releases nobody has rated (3,146 at build time: 980 English, 183 Hindi, 464 Telugu, 741 Tamil,
     290 Kannada, 488 Malayalam; more are added daily) are recommended from their story: text mapped to iALS
@@ -127,11 +215,15 @@ uv run mlflow ui --backend-store-uri "sqlite:///../mlruns/mlflow.db"
 The same commands work for `amazon-videogames` (`recsys download/prepare amazon-videogames`, config
 `amazon-videogames.yaml`).
 
-## Deploy (free tiers)
+## Deploy
 
-Vercel (web) + Hugging Face Spaces (API, Docker) + Supabase (optional accounts and database). Step by step:
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). The public Space ships the trained models but no MovieLens user
-histories (licence).
+Live setup: the website on **Vercel**, the API on **Render** from the Blueprint [`render.yaml`](render.yaml) (a
+Docker service built from this repository with a persistent disk), and the trained models in a private Hugging
+Face dataset that [`deploy/render/start.py`](deploy/render/start.py) downloads on first start. The models ship
+without any MovieLens user histories (licence), so the live Model Lab compares models on your own ratings.
+Alternatives, ready to use: Google Cloud Run (`deploy/cloudrun/deploy.py`), a Hugging Face Space
+(`deploy/huggingface/`), or a laptop behind a free Cloudflare tunnel (`deploy/local/start_public.py`). Step by
+step: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Repository layout
 
@@ -148,11 +240,13 @@ histories (licence).
 | `ml/src/recsys/analysis/` | EDA, significance tests, session/activity analysis, figures |
 | `ml/configs/` | Experiment configs (`*-tuned.yaml` are generated by `recsys tune`) |
 | `ml/notebooks/` | `01` EDA · `02` Week 1 baselines · `03` all results; sources in `notebooks/src/` |
-| `backend/` | FastAPI service, 12 tests, Dockerfile |
+| `backend/` | FastAPI service (accounts, recommendations, history import, new releases, poster cache), 66 tests |
 | `frontend/` | Next.js web app (see [frontend/README.md](frontend/README.md)) |
-| `supabase/migrations/` | Production database schema with row-level security |
-| `deploy/` | Hugging Face Space builder, smoke test |
+| `supabase/migrations/` | Postgres schema with row-level security (optional; the live API uses SQLite on Render's disk) |
+| `deploy/` | Render (Dockerfile, first-boot model download), Google Cloud Run, Hugging Face Space, laptop tunnel, smoke test |
+| `render.yaml` | Render Blueprint for the live API |
 | `docs/report/` | Report chapters 1–13 (Abstract … References) |
+| `docs/RedBox_Technical_Overview.pdf` | How it works in 13 pages (source: `docs/overview/`, built by `frontend/scripts/make-overview-pdf.mjs`) |
 | `docs/results/`, `docs/figures/` | Generated tables and figures |
 | `data/`, `mlruns/` | Datasets, splits, models, bundles, MLflow and Optuna stores (git-ignored) |
 

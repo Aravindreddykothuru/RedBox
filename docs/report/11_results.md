@@ -301,7 +301,7 @@ Test NDCG@10 on the same 15,000 test users:
 
 | Model | NDCG@10 |
 |---|---:|
-| **Red Box hybrid (served)** | **0.1293 (+16.0%)** |
+| **Red Box hybrid (served)** | **0.1293 (+15.9%)** |
 | SASRec (CE loss) | 0.1115 |
 | EASE | 0.0913 |
 | iALS | 0.0810 |
@@ -310,7 +310,7 @@ Test NDCG@10 on the same 15,000 test users:
 
 - **The single models rank in the same order as on MovieLens-1M:** SASRec first, EASE the best
   non-sequential model.
-- **The hybrid improves on SASRec by 16.0%** (+9.0% on MovieLens-1M). 48.4% of test users find at least
+- **The hybrid improves on SASRec by 15.9%** (+9.0% on MovieLens-1M). 48.4% of test users find at least
   one film they went on to like in its top ten.
 - **Absolute scores are lower than on MovieLens-1M** (0.1293 against 0.1790). The catalogue is 2.3 times
   larger, so ranking over it is harder, and scores should not be compared across datasets.
@@ -440,7 +440,7 @@ story's guess (collaborative topic regression).
 | RQ3: accuracy vs. diversity | MMR gives a smooth, controllable trade-off; the most accurate systems also cover the catalog widely |
 | RQ4: do findings transfer to products? | The core findings hold. The Markov chain's MovieLens advantage disappears, exposing a data-collection artifact |
 | Order ablation | Trained on shuffled histories, SASRec loses 61% of its NDCG@10 and falls below EASE: its MovieLens lead is the rating order |
-| The app's models (MovieLens-32M) | Same order of single models; the served hybrid is +16.0% over SASRec on the same 15,000 test users (p = 1.3 × 10⁻⁸⁷) |
+| The app's models (MovieLens-32M) | Same order of single models; the served hybrid is +15.9% over SASRec on the same 15,000 test users (p = 1.3 × 10⁻⁸⁷) |
 | New films nobody has rated | Text mapped to iALS factors: hit@10 18.9% on films treated as new, against 5.0% for content alone and 31.2% for the true factors |
 | New films learning from ratings | NDCG@10 0.080 with the story's guess, 0.100 after about 30 likes, 0.125 for a fully trained film |
 | Trending and new users | An ML forecast (the hybrid run for 4,000 viewers) beats popularity: trending NDCG@10 0.961 vs 0.537; new-user hit@10 17.2% vs 10.3% |

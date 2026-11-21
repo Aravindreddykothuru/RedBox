@@ -12,7 +12,7 @@ Red Box has two halves that meet in one artefact, the **model bundle**.
 | Half | What it does | Where it runs |
 |---|---|---|
 | Offline research pipeline | trains and evaluates every model, then packs the deployed model into a bundle | laptop CPU or a Kaggle GPU |
-| Online application | serves recommendations from the bundle and stores what users do | the cloud, on free tiers |
+| Online application | serves recommendations from the bundle and stores what users do | Vercel (website) and Render (API) |
 
 ```mermaid
 flowchart LR
@@ -25,13 +25,14 @@ flowchart LR
         H --> X[Export bundle]
     end
     X --> B[[Model bundle<br/>NumPy + LightGBM + items]]
-    subgraph Online["Online (free cloud tiers)"]
+    B -->|upload| HF[(Private Hugging Face dataset)]
+    subgraph Online["Online"]
         U((User)) --> F[Next.js frontend<br/>Vercel]
-        F -->|HTTPS + JWT| A[FastAPI<br/>Hugging Face Spaces]
-        A --> S[(Supabase Postgres<br/>ratings, watchlist, events)]
-        F -->|sign in| AU[Supabase Auth]
+        U -->|HTTPS + JWT| A[FastAPI<br/>Render, Docker, 2 GB]
+        A --> S[(SQLite on a persistent disk<br/>accounts, ratings, watchlist, events)]
+        A -. daily .-> W[Wikidata + Wikipedia<br/>new releases]
     end
-    B --> A
+    HF -->|first start| A
 ```
 
 ---
@@ -69,7 +70,7 @@ sequenceDiagram
     actor User
     participant FE as Frontend (Next.js)
     participant API as FastAPI
-    participant DB as Postgres (Supabase)
+    participant DB as Database (SQLite on disk)
     participant EN as Engine (in memory)
     User->>FE: opens the home page
     FE->>API: GET /recommendations/feed (Bearer JWT)
@@ -112,7 +113,7 @@ erDiagram
     BUNDLE_ITEMS ||--o{ EVENTS : "movie_id"
 
     AUTH_USERS {
-        uuid id PK "managed by Supabase Auth"
+        uuid id PK "account id"
         text email
     }
     PROFILES {
@@ -282,20 +283,24 @@ flowchart LR
     subgraph Vercel
         FE[Next.js app]
     end
-    subgraph HF["Hugging Face Spaces (Docker, 2 vCPU / 16 GB)"]
-        API[FastAPI + bundle]
-    end
-    subgraph Supabase
-        AUTH[Auth]
-        PG[(Postgres + RLS)]
+    subgraph Render["Render (Docker, Standard: 2 GB, 1 CPU)"]
+        API[FastAPI + engine]
+        DISK[(Persistent disk:<br/>SQLite, bundle, posters)]
     end
     Browser --> FE
-    Browser --> AUTH
-    FE --> API
-    API --> PG
-    GH[GitHub repo + Actions CI] -. deploy .-> FE
-    GH -. image .-> API
+    Browser -->|HTTPS + JWT| API
+    API --> DISK
+    HFD[(Private Hugging Face dataset:<br/>model bundle)] -->|first start| DISK
+    GH[GitHub repo] -. build .-> API
+    GH -. build .-> FE
 ```
+
+- **Live:** https://redbox-recommender.vercel.app, with the API at https://redbox-api.onrender.com.
+- **Why this layout.** Hugging Face now charges for Docker Spaces, and free hosts without a card offer too
+  little memory for the engine (about 1 GB), so the API runs on a paid Render Standard instance. Accounts live in
+  SQLite on the service's persistent disk. Postgres (`supabase/migrations/`) remains supported.
+- **The bundle** is too large for git and contains model weights derived from MovieLens, so it lives in a private
+  Hugging Face dataset. `deploy/render/start.py` downloads it onto the disk on first start.
 
 ---
 
