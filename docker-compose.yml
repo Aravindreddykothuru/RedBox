@@ -1,0 +1,35 @@
+# Local full stack: Postgres (same engine as Supabase, with pgvector) + the Red Box API.
+#   docker compose up --build        then open http://localhost:8000/docs
+# Export the model bundle first: bash ml/scripts/train_app_models.sh (or recsys export -c ml-1m-tuned)
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: redbox
+      POSTGRES_PASSWORD: redbox-local-only
+      POSTGRES_DB: redbox
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U redbox"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      REDBOX_DATABASE_URL: postgresql+psycopg://redbox:redbox-local-only@db:5432/redbox
+      REDBOX_AUTH_MODE: local
+      # local use only: a real deployment sets its own secret (see docs/DEPLOYMENT.md)
+      REDBOX_JWT_SECRET: local-compose-signing-key-change-me-0000000000
+      REDBOX_CORS_ORIGINS: '["http://localhost:3000"]'
+    # the app's bundle: BUNDLE=ml-32m (default) or BUNDLE=ml-1m docker compose up --build
+    volumes: ["./data/bundles/${BUNDLE:-ml-32m}:/app/bundle:ro"]
+    ports: ["8000:8000"]
+    depends_on:
+      db: { condition: service_healthy }
+
+volumes:
+  pgdata:

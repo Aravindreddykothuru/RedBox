@@ -1,0 +1,57 @@
+{
+  "dataset": "amazon-videogames",
+  "n_users": 42045,
+  "n_items_rated": 5771,
+  "n_items_catalog": 5771,
+  "n_interactions": 391023,
+  "density": 0.00161,
+  "sparsity_pct": 99.84,
+  "rating_mean": 4.515,
+  "rating_counts": {
+    "1.0": 12088,
+    "2.0": 10023,
+    "3.0": 23383,
+    "4.0": 64476,
+    "5.0": 281053
+  },
+  "positive_threshold": 4.0,
+  "n_positive": 345529,
+  "positive_share": 0.8837,
+  "users_with_lt_10_positives": 33491,
+  "users_with_lt_3_positives": 0,
+  "user_activity": {
+    "min": 5,
+    "p25": 6.0,
+    "median": 7.0,
+    "mean": 9.3,
+    "p75": 10.0,
+    "p90": 15.0,
+    "p99": 40.0,
+    "max": 317
+  },
+  "user_activity_buckets": {
+    "1-20": 39919,
+    "21-50": 1907,
+    "51-200": 216,
+    ">200": 3
+  },
+  "item_popularity": {
+    "min": 15,
+    "p25": 24.0,
+    "median": 36.0,
+    "mean": 67.76,
+    "p75": 71.0,
+    "p90": 144.0,
+    "p99": 454.9,
+    "max": 1778
+  },
+  "items_with_lt_10_ratings": 0,
+  "top20pct_items_share_of_ratings": 0.5794,
+  "gini_item_popularity": 0.5079,
+  "time_start": "2000-01-03",
+  "time_end": "2023-08-10",
+  "top3_months_share_of_ratings": 0.0521,
+  "tied_timestamp_share": 0.0003,
+  "users_active_within_1_day_share": 0.119,
+  "user_span_days_median": 942.3
+}

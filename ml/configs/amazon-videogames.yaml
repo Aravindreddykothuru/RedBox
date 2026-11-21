@@ -1,0 +1,43 @@
+# Amazon Reviews 2023, Video Games (RQ4: do the MovieLens conclusions hold for products?).
+# Same split protocol and metrics as MovieLens-1M. Unlike MovieLens, Amazon timestamps are real
+# purchase/review times: only 0.03% of reviews share a second with another review of the same user
+# (MovieLens-1M: 77%), so there is no bulk-rating order artifact.
+dataset: amazon-videogames
+description: >-
+  The strongest model of each family plus the baselines. NeuMF and Mult-VAE are left out on this dataset
+  because scoring 42k users x 5.8k items is too slow on the project's CPU-only laptop. Fast models were
+  tuned on validation (see the tuning table); the others use their MovieLens-1M defaults, except SASRec's
+  maximum history length (50 instead of 200: Amazon histories are short, median 6 liked items).
+
+split:
+  positive_threshold: 4.0
+  val_ratio: 0.1
+  test_ratio: 0.1
+  min_positives: 3
+  seed: 42
+
+evaluation:
+  ks: [5, 10, 20]
+  primary_metric: ndcg@10
+
+models:
+  mostpop: {}
+  userknn: { k: 100, shrink: 10 }
+  itemknn: { k: 100, shrink: 10 }
+  ease: { l2: 500 }
+  markov: {}
+  bpr: { dim: 64, lr: 0.001, reg: 0.0001, batch_size: 4096, epochs: 300, eval_every: 5, patience: 5, seed: 42 }
+  ials: { dim: 64, alpha: 10, reg: 1.0, epochs: 30, eval_every: 1, patience: 3, seed: 42 }
+  lightgcn:
+    { dim: 64, layers: 3, lr: 0.002, reg: 0.0001, batch_size: 8192, epochs: 1000,
+      eval_every: 10, patience: 5, seed: 42 }
+  sasrec_ce:
+    { model: sasrec, dim: 64, blocks: 2, heads: 1, max_len: 50, dropout: 0.2, loss: ce, lr: 0.001,
+      batch_size: 256, epochs: 200, eval_every: 5, patience: 5, seed: 42 }
+
+hybrid:
+  generators: [ease, sasrec_ce, markov, ials, lightgcn, mostpop]
+  candidates_per_generator: 40
+  mmr_lambdas: [1.0]
+  ranker: { learning_rate: 0.05, num_leaves: 63, min_data_in_leaf: 100 }
+  seed: 42

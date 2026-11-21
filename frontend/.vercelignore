@@ -1,0 +1,7 @@
+# Not part of the website: local builds, dependencies (Vercel installs its own), test screenshots, secrets
+node_modules
+.next
+out
+e2e/shots
+.env*
+*.log

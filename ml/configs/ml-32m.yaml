@@ -1,0 +1,39 @@
+# MovieLens-32M: the models behind the live app (not part of the research comparison, which is ML-1M
+# and Amazon). Data: ratings made from 2018-01-01 to October 2023, films with >= 20 likes and users
+# with >= 5 likes (k-core); 6.8M ratings, 42,144 users, 8,487 films (`recsys prepare ml-32m`).
+# Only the five generators the app serves are trained. Settings start from the tuned ML-1M values;
+# SASRec is shortened (last 50 films, not 200) so a CPU can train it overnight.
+dataset: ml-32m
+description: >-
+  App models on MovieLens-32M (2018-2023 window). The same protocol as the research benchmark:
+  per-user chronological 80/10/10 split, full-catalogue ranking, test set used once.
+
+split:
+  positive_threshold: 4.0
+  val_ratio: 0.1
+  test_ratio: 0.1
+  min_positives: 3
+  seed: 42
+
+evaluation:
+  ks: [5, 10, 20]
+  primary_metric: ndcg@10
+
+models:
+  mostpop: {}
+  markov: {}
+  ease: { l2: 500 }
+  ials: { dim: 64, alpha: 4.72, reg: 16.96, epochs: 30, eval_every: 1, patience: 3, seed: 42 }
+  sasrec_ce:
+    { model: sasrec, dim: 64, blocks: 2, heads: 1, max_len: 50, dropout: 0.2, loss: ce, lr: 0.001,
+      batch_size: 128, epochs: 40, eval_every: 2, patience: 3, seed: 42 }
+
+serving:
+  generators: [ease, sasrec_ce, markov, ials, mostpop]
+  candidates_per_generator: 40
+  ranker: { learning_rate: 0.05, num_leaves: 63, min_data_in_leaf: 100 }
+  # 42k users x ~120 candidates would not fit in laptop memory: train the ranker on, and evaluate the
+  # serving hybrid with, fixed random samples of users.
+  ranker_max_users: 15000
+  eval_max_users: 15000
+  seed: 42

@@ -1,0 +1,38 @@
+# --- Data & artifacts: never commit datasets (MovieLens terms forbid redistribution) ---
+/data/
+/models/
+mlruns/
+mlartifacts/
+*.part
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+
+# --- Node / Next.js (frontend, Week 5) ---
+node_modules/
+.next/
+.vercel/
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+
+# --- Landing-page film stills and actor photos: copyrighted, supplied for the local demo only ---
+# The live site has them; a clone gets the landing page without the wall (add your own stills here).
+frontend/public/hero/stills/
+docs/figures/app/landing.png

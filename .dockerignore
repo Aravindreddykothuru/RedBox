@@ -1,0 +1,14 @@
+# Keep the build context small: only ml/ sources, lock files and backend/app are copied into the image.
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.ipynb_checkpoints
+data/
+mlruns/
+docs/
+frontend/
+ml/notebooks/
+ml/tests/
+backend/tests/
+.git/

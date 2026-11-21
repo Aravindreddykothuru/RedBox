@@ -1,0 +1,5 @@
+method,hit@10,NDCG@10,users
+random,0.0208,0.007273186002963175,5000
+content only (text cosine),0.0498,0.019150656764399473,5000
+ML: text mapped to iALS factors,0.1886,0.07388484140260891,5000
+upper bound: true iALS factors,0.3118,0.12085868683270477,5000

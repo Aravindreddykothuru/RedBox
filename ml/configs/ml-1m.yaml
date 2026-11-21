@@ -1,0 +1,80 @@
+# MovieLens-1M experiment configuration.
+# Every model starts from literature-default hyperparameters. Optuna tuning with an equal budget per
+# model comes in Week 3, so the default-settings tables are a first comparison, not final results.
+dataset: ml-1m
+description: >-
+  Literature-default hyperparameters, **not yet tuned** (equal-budget Optuna tuning follows in Week 3).
+  Deviations from the papers, all made to fit CPU training, are noted in ml/configs/ml-1m.yaml.
+
+split:
+  positive_threshold: 4.0 # "liked" = rating >= 4 (EDA notebook, section 2)
+  val_ratio: 0.1
+  test_ratio: 0.1
+  min_positives: 3 # users with fewer liked movies are train-only
+  seed: 42 # seeds the random tie-break for same-second ratings
+
+evaluation:
+  ks: [5, 10, 20]
+  primary_metric: ndcg@10 # used for early stopping and model selection
+
+models:
+  # --- Week 1: baselines -------------------------------------------------------------------------
+  mostpop: {}
+  userknn: { k: 100, shrink: 10 }
+  itemknn: { k: 100, shrink: 10 }
+  ease: { l2: 500 }
+  bpr: { dim: 64, lr: 0.001, reg: 0.0001, batch_size: 4096, epochs: 300, eval_every: 5, patience: 5, seed: 42 }
+
+  # Week 3: the simplest sequential model, added as a control experiment for SASRec's result.
+  markov: {}
+
+  # --- Week 2: latent factor, deep and graph models ---------------------------------------------
+  ials: { dim: 64, alpha: 10, reg: 1.0, epochs: 30, eval_every: 1, patience: 3, seed: 42 }
+
+  # Paper: 4 negatives per positive, MLP tower [64, 32, 16]; no pre-training of the two branches.
+  neumf:
+    { gmf_dim: 32, mlp_dims: [64, 32, 16], negatives: 4, lr: 0.001, batch_size: 2048,
+      epochs: 50, eval_every: 2, patience: 3, seed: 42 }
+
+  # Paper: [600, 200] dims, dropout 0.5, beta annealed to 0.2, batch 500 users.
+  multvae:
+    { hidden_dim: 600, latent_dim: 200, dropout: 0.5, anneal_cap: 0.2, anneal_epochs: 100,
+      lr: 0.001, batch_size: 500, epochs: 400, eval_every: 5, patience: 5, seed: 42 }
+
+  # Paper: batch 2048, lr 0.001, 3 layers. CPU deviation: batch 8192 + lr 0.002 (4x fewer graph
+  # propagations per epoch).
+  lightgcn:
+    { dim: 64, layers: 3, lr: 0.002, reg: 0.0001, batch_size: 8192, epochs: 1000,
+      eval_every: 10, patience: 5, seed: 42 }
+
+  # Paper (ML-1M): 2 blocks, 1 head, max length 200, dropout 0.2, lr 0.001, batch 128, BCE loss
+  # with one sampled negative per position. Embedding size 64 (paper: 50).
+  # Training batches group users of similar history length (results are unchanged: padding is masked).
+  sasrec:
+    { dim: 64, blocks: 2, heads: 1, max_len: 200, dropout: 0.2, loss: bce, lr: 0.001,
+      batch_size: 128, epochs: 200, eval_every: 5, patience: 5, seed: 42 }
+
+  # Same model with a full-softmax cross-entropy loss (Klenitskiy & Vasilev, RecSys 2023).
+  sasrec_ce:
+    { model: sasrec, dim: 64, blocks: 2, heads: 1, max_len: 200, dropout: 0.2, loss: ce, lr: 0.001,
+      batch_size: 128, epochs: 200, eval_every: 5, patience: 5, seed: 42 }
+
+# --- Red Box: the proposed two-stage hybrid (Week 3) ------------------------------------------
+# Generators cover different signals: taste (EASE, iALS), graph (LightGCN), sequence (SASRec, Markov),
+# popularity (MostPop). Each proposes its top `candidates_per_generator`; a LightGBM LambdaRank model
+# trained on validation labels ranks the union; MMR optionally trades accuracy for diversity.
+hybrid:
+  generators: [ease, sasrec_ce, markov, ials, lightgcn, mostpop]
+  candidates_per_generator: 40
+  mmr_lambdas: [1.0, 0.9, 0.8, 0.7, 0.5]
+  ranker: { learning_rate: 0.05, num_leaves: 63, min_data_in_leaf: 100 }
+  seed: 42
+
+# --- The deployed app's hybrid (Week 4) --------------------------------------------------------------
+# Only generators that can score a user from their current history (new users, instant updates).
+# LightGCN is left out: it needs graph retraining for every new user.
+serving:
+  generators: [ease, sasrec_ce, markov, ials, mostpop]
+  candidates_per_generator: 40
+  ranker: { learning_rate: 0.05, num_leaves: 63, min_data_in_leaf: 100 }
+  seed: 42

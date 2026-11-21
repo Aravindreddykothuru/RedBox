@@ -1,0 +1,446 @@
+@import "tailwindcss";
+
+/* Red Box: a streaming-style shell. Near-black neutrals, white type, bold sans headings, small corners,
+   and one brand colour, a deep cinema red, for the main call to action, ratings and the wordmark. Small red
+   text uses the lighter --accent-text so it stays readable on the dark surfaces (4.5:1 or more); errors are
+   orange, so they never read as branding.
+   The film covers are the colourful part of every screen. */
+:root {
+  color-scheme: dark;
+  --bg: #141414;
+  --deep: #000000;
+  --surface: #1f1f1f;
+  --surface-2: #2d2d2d;
+  --surface-3: #414141;
+  --line: rgb(255 255 255 / 0.1);
+  --line-strong: rgb(255 255 255 / 0.2);
+  --ink: #ffffff;
+  --ink-2: #b3b3b3;
+  --muted: #808080;
+  --accent: #d6283b; /* white text on it: 5.0:1 */
+  --accent-hover: #b91f30;
+  --accent-ink: #ffffff;
+  --accent-text: #ff6370; /* on --bg: 6.4:1 */
+  --danger: #ff8a3d;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* chart roles (validated against the dark surface: lightness band, chroma, CVD separation) */
+  --chart-series: #3987e5;
+  --chart-highlight: #e8404f; /* the brand red, lightened for marks on dark: 4.6:1 */
+  --chart-grid: #2a2a2a;
+  --chart-axis: #3a3a3a;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-deep: var(--deep);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-text: var(--accent-text);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans), var(--font-telugu), var(--font-devanagari);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-geist-sans);
+  --ease-out: var(--ease);
+  /* small, even corners everywhere */
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
+}
+
+body {
+  /* full-bleed sections use 100vw, which includes the scrollbar on Windows: never scroll sideways */
+  overflow-x: clip;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), var(--font-telugu), var(--font-devanagari), system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+::selection {
+  background: rgb(214 40 59 / 0.45);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* The signature: the short line under every film that says why it is on screen. */
+.note {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+/* Big outlined rank numbers in top-ten rows. */
+.rank-number {
+  font-family: var(--font-geist-sans), var(--font-telugu), var(--font-devanagari), system-ui, sans-serif;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: var(--bg);
+  -webkit-text-stroke: 2px rgb(255 255 255 / 0.85);
+  paint-order: stroke fill;
+}
+
+/* Horizontal rows scroll without a visible scrollbar; arrow buttons and keyboard still work. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+/* One entrance per page: the main content fades and rises a few pixels. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.enter {
+  animation: rise 400ms var(--ease) both;
+}
+
+/* Stills wall (components/stills-wall.tsx): rows of film stills behind the landing and sign-in heroes, each
+   whole at its own shape. The wall is tilted and oversized so the tilt never shows an edge; every row
+   drifts by half its length (its content is doubled) and loops without a seam, alternate rows the other
+   way. A loop takes minutes: movement you notice, not watch. */
+.stills-wall {
+  position: absolute;
+  inset: -15% -12%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  transform: rotate(-6deg);
+}
+.stills-row {
+  flex: none;
+  height: clamp(110px, 19vh, 200px);
+}
+.stills-track {
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  height: 100%;
+  will-change: transform;
+  animation: stills-drift 160s linear infinite;
+}
+.stills-row:nth-child(even) .stills-track {
+  animation-direction: reverse;
+  animation-duration: 190s;
+}
+.stills-track img {
+  flex: none;
+  height: 100%;
+  width: auto;
+  border-radius: 6px;
+  user-select: none;
+}
+@keyframes stills-drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Opening animation (components/intro.tsx), 4.2 s; every keyframe below shares that timeline:
+     0.0-0.9 s   red light strands sweep in from both sides and fuse into a big R
+     0.75-1.25 s the R appears with a flash of light; 1.3-1.9 s a shine runs across it
+     2.05-2.6 s  the R shrinks into place as the rest of the name unfolds out of it: RED BOX
+     2.6-3.15 s  a shine runs across the name
+     3.15-3.8 s  the name rushes toward the viewer and the strands fly past, still on black
+     3.6-4.2 s   the black lifts and the page rises into place
+   It shows only when the head script set <html data-intro="play"> (lib/intro.ts); "leaving" is a skip
+   fading out. Sizes: --intro-word is the name's font size; the R is three times larger, so shrinking it by
+   1/3 lands it on the name's R. */
+.intro {
+  display: none;
+}
+html:is([data-intro="play"], [data-intro="leaving"]) .intro {
+  --intro-word: clamp(44px, 12vw, 152px);
+  --intro-r: calc(var(--intro-word) * 3);
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  background: #000;
+  animation: intro-out 4.2s linear both;
+}
+html[data-intro="play"]:has(.intro) {
+  overflow: hidden;
+}
+/* the page's own entrance waits for the intro to lift (a skip ends the wait at once) */
+html[data-intro="play"] .enter {
+  animation-delay: 3.6s;
+}
+.intro-leaving {
+  animation: intro-fade 250ms ease-out forwards !important;
+}
+.intro-glow {
+  position: absolute;
+  inset: 20% 5%;
+  background: radial-gradient(closest-side, rgb(214 40 59 / 0.3), transparent);
+  animation: intro-glow 4.2s linear both;
+}
+.intro-strand {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform, opacity;
+  animation: intro-strand 4.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.intro-flare {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: linear-gradient(90deg, transparent, #ff9aa2 30%, #fff0f2 50%, #ff9aa2 70%, transparent);
+  box-shadow: 0 0 24px 4px rgb(214 40 59 / 0.55);
+  animation: intro-flare 4.2s ease-out both;
+}
+/* the big R and the name share the one grid cell, both centred */
+.intro-r,
+.intro-mark {
+  grid-area: 1 / 1;
+  position: relative;
+  will-change: transform, opacity;
+}
+.intro-r {
+  animation: intro-r 4.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.intro-mark {
+  animation: intro-mark 4.2s linear both;
+}
+/* each pair of layers sets the same text the same way, so the shine sits exactly on the letters */
+.intro-r-letter,
+.intro-word {
+  display: block;
+  white-space: nowrap;
+  font-weight: 800;
+  line-height: 1;
+  font-kerning: none;
+}
+.intro-r-letter {
+  font-size: var(--intro-r);
+  letter-spacing: 0;
+}
+.intro-word {
+  font-size: var(--intro-word);
+  letter-spacing: -0.04em;
+}
+.intro-letter {
+  display: inline-block;
+  animation: intro-letter 4.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.intro-shine,
+.intro-r-shine {
+  color: transparent;
+  background: linear-gradient(105deg, transparent 42%, rgb(255 240 242 / 0.95) 50%, transparent 58%) no-repeat;
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.intro-shine {
+  animation: intro-shine 4.2s linear both;
+}
+.intro-r-shine {
+  animation: intro-r-shine 4.2s linear both;
+}
+.intro-skip {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  transition: color 150ms;
+}
+.intro-skip:hover,
+.intro-skip:focus-visible {
+  color: var(--ink);
+}
+@keyframes intro-out {
+  0%,
+  86% {
+    background-color: #000;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+@keyframes intro-fade {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes intro-glow {
+  0%,
+  18% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.6;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+/* the strands settle over the R, shrink into it and fade; later they fly outward past the viewer */
+@keyframes intro-strand {
+  0% {
+    transform: translateX(var(--from)) scaleY(0.35);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  21% {
+    transform: translateX(0) scaleY(1);
+    opacity: 1;
+  }
+  30% {
+    transform: translateX(0) scaleY(0.45);
+    opacity: 0.7;
+  }
+  34%,
+  75% {
+    transform: translateX(0) scaleY(0.05);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.4);
+  }
+  85% {
+    transform: translateX(calc(var(--out) * 0.4)) scaleY(1.6);
+    opacity: 0.85;
+  }
+  94%,
+  100% {
+    transform: translateX(var(--out)) scaleY(2.6);
+    opacity: 0;
+  }
+}
+@keyframes intro-flare {
+  0%,
+  24% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  30% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  45%,
+  100% {
+    transform: scaleX(1.1);
+    opacity: 0;
+  }
+}
+/* the R: in sharp at 1.25 s, held, then shrunk by 1/3 onto the name's R (about 1.68 name-sizes left of
+   centre) while it fades into it */
+@keyframes intro-r {
+  0%,
+  18% {
+    transform: scale(0.86);
+    opacity: 0;
+    filter: blur(10px);
+  }
+  30% {
+    transform: scale(1);
+    opacity: 1;
+    filter: blur(0);
+  }
+  49% {
+    transform: scale(1.03);
+    opacity: 1;
+    filter: blur(0);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1);
+  }
+  61%,
+  100% {
+    transform: translateX(calc(var(--intro-word) * -1.68)) scale(0.3333);
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+@keyframes intro-r-shine {
+  0%,
+  31% {
+    background-position: 100% 0;
+  }
+  45%,
+  100% {
+    background-position: 0 0;
+  }
+}
+/* the rest of the name unfolds out of the R: every letter starts stacked on it and slides to its place */
+@keyframes intro-letter {
+  0%,
+  50% {
+    transform: translateX(calc(var(--i) * -0.57em));
+    opacity: 0;
+    filter: blur(4px);
+  }
+  62%,
+  100% {
+    transform: none;
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes intro-shine {
+  0%,
+  62% {
+    background-position: 100% 0;
+  }
+  75%,
+  100% {
+    background-position: 0 0;
+  }
+}
+@keyframes intro-mark {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.04);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.3);
+  }
+  90.5%,
+  100% {
+    transform: scale(7);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

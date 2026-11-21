@@ -1,0 +1,23 @@
+# Ablation experiments on MovieLens-1M (same split and evaluation as ml-1m.yaml, so results are
+# directly comparable; runs land in the same MLflow experiment).
+dataset: ml-1m
+description: >-
+  Ablations. Each entry changes exactly one thing relative to its reference model in ml-1m.yaml.
+
+split:
+  positive_threshold: 4.0
+  val_ratio: 0.1
+  test_ratio: 0.1
+  min_positives: 3
+  seed: 42
+
+evaluation:
+  ks: [5, 10, 20]
+  primary_metric: ndcg@10
+
+models:
+  # Does SASRec's advantage come from the ORDER of a user's ratings? Identical to sasrec_ce, except each
+  # user's history is randomly shuffled (training and prediction), so only the set of items remains.
+  sasrec_ce_shuffled:
+    { model: sasrec, order: shuffled, dim: 64, blocks: 2, heads: 1, max_len: 200, dropout: 0.2, loss: ce,
+      lr: 0.001, batch_size: 128, epochs: 200, eval_every: 5, patience: 5, seed: 42 }

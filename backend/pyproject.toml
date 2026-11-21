@@ -1,0 +1,47 @@
+[project]
+name = "redbox-api"
+version = "0.1.0"
+description = "Red Box recommendation API (FastAPI): serves the hybrid recommender from an exported bundle"
+authors = [
+    { name = "Aravind reddy", email = "juug23btech20109@gmail.com" }
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.165.0",
+    "pillow>=13.0.0",
+    "psycopg[binary]>=3.3.9",
+    "pydantic-settings>=2.16.3",
+    "pyjwt[crypto]>=2.15.1",
+    "recsys",
+    "sqlalchemy>=2.1.9",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[tool.uv]
+package = false # an application (run with uvicorn), not an installable library
+
+[tool.uv.sources]
+recsys = { path = "../ml", editable = true }
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection markers are meant to be used as argument defaults
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.params.Depends", "fastapi.params.Query"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

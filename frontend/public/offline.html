@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#141414" />
+    <title>Offline · Red Box</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #141414;
+        color: #fff;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+      .mark { font-size: 28px; font-weight: 900; letter-spacing: -0.04em; color: #d6283b; }
+      h1 { margin: 24px 0 8px; font-size: 28px; line-height: 34px; }
+      p { margin: 0 auto; max-width: 420px; color: #b3b3b3; line-height: 22px; }
+      button {
+        margin-top: 24px;
+        height: 44px;
+        padding: 0 20px;
+        border: 0;
+        border-radius: 4px;
+        background: #d6283b;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:hover { background: #b91f30; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark">RED BOX</div>
+      <h1>You're offline</h1>
+      <p>Your picks come from models that read your latest ratings, so Red Box needs a connection. Try again once you're back online.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>

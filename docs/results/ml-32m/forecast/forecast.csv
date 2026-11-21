@@ -1,0 +1,7 @@
+use,method,NDCG@10,NDCG@50,top-20 overlap,hit@10,viewers
+trending,popularity,0.5372477377113388,0.7411845777856346,0.15,,
+trending,ML crowd forecast,0.9613390429690234,0.9527620373715069,0.7,,
+cold start,popularity,0.018440945561169802,,,0.103,5000.0
+cold start,popular in the chosen genres,0.018217965839354915,,,0.1044,5000.0
+cold start,ML crowd forecast (no genres),0.02970011163720456,,,0.1694,5000.0
+cold start,ML viewers like you (chosen genres),0.030342745324827943,,,0.172,5000.0

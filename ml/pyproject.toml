@@ -1,0 +1,76 @@
+[project]
+name = "recsys"
+version = "0.1.0"
+description = "Collaborative filtering for personalized movie/product recommendations using ML/DL techniques"
+readme = "README.md"
+authors = [
+    { name = "Aravind reddy", email = "juug23btech20109@gmail.com" }
+]
+requires-python = ">=3.12,<3.13"
+# Core runtime deps only: the serving backend (Week 4) installs just these.
+dependencies = [
+    "lightgbm>=4.7.0",
+    "numpy>=2.5.5",
+    "onnxruntime>=1.20",
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
+    "pyyaml>=6.0.3",
+    "requests>=2.34.2",
+    "scipy>=1.18.1",
+    "tokenizers>=0.20",
+    "tqdm>=4.70.1",
+    "typer>=0.29.2",
+]
+
+[project.scripts]
+recsys = "recsys.cli:app"
+
+# Local-only dependency groups (not installed when the backend depends on this package).
+[dependency-groups]
+research = [
+    "matplotlib>=3.11.2",
+    "mlflow>=3.18.0",
+    "optuna>=5.1.0",
+    "torch>=2.15.0",
+]
+dev = [
+    "ipykernel>=7.4.0",
+    "jupytext>=1.19.6",
+    "nbconvert>=7.17.2",
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
+
+[tool.uv]
+default-groups = ["research", "dev"]
+
+# CPU-only PyTorch on every platform: no 2.5 GB of CUDA libraries in CI.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-include = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "NPY", "PD"]
+
+[tool.ruff.lint.per-file-ignores]
+"notebooks/*" = ["E402"]  # notebooks import mid-file by design
+# Notebook sources: markdown cells are comments (prose with typographic dashes and long table rows), and a
+# cell ending in a bare expression is how a notebook displays a table.
+"notebooks/src/*" = ["E402", "E501", "RUF003", "B018"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
