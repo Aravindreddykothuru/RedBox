@@ -1,20 +1,22 @@
 # Deploying Red Box (free tiers only)
 
 **Current state:**
-- Website: **live** at https://redbox-recommender.vercel.app (Vercel project `redbox-recommender`), built
-  to call the API at https://aravindreddy111-redbox-api.hf.space.
-- API: **ready to publish** to the Space `aravindreddy111/redbox-api`; the folder is built and passed the
-  smoke test locally (`dist/hf-space`). Publishing needs a Hugging Face token with *write* permission
-  (the one saved on this machine can only read). Then run, from the repository root:
+- Website: **live** at https://redbox-recommender.vercel.app (Vercel project `redbox-recommender`).
+- API: **ready for Google Cloud Run.** Hugging Face now requires a paid PRO plan for Docker Spaces, so the
+  API runs on Cloud Run's free tier instead (`deploy/cloudrun/deploy.py`; the same container, smoke-tested
+  locally). One-time setup, in your own terminal: install the Google Cloud CLI, run `gcloud init` (sign in,
+  create a project) and link the project to a billing account. Then, from the repository root:
 
   ```bash
-  REDBOX_JWT_SECRET="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')" \
-  REDBOX_CORS_ORIGINS='["https://redbox-recommender.vercel.app"]' \
-  uv run --project ml python deploy/huggingface/build_space.py \
-      --push aravindreddy111/redbox-api --backup-repo aravindreddy111/redbox-data
+  uv run --project ml python deploy/cloudrun/deploy.py --project <your-project-id> \
+      --cors https://redbox-recommender.vercel.app --backup-repo aravindreddy111/redbox-data
   ```
-- Database: SQLite on the Space, backed up to the private dataset `aravindreddy111/redbox-data` (option B
-  below).
+
+  Finally point the website at the address it prints (`vercel env` `NEXT_PUBLIC_API_URL`) and redeploy it.
+- Database: SQLite in the API's container, backed up to the private Hugging Face dataset
+  `aravindreddy111/redbox-data` (option B below; Hugging Face datasets stay free).
+
+The Hugging Face Space route below still works with a PRO plan.
 
 ```
 Browser ──► Next.js on Vercel ──► FastAPI on a Hugging Face Space (Docker) ──► Postgres (Supabase or Neon)

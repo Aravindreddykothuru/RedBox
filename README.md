@@ -25,8 +25,11 @@ Red Box has three parts:
 **Status:** Weeks 0–6 built and tested, then made production-grade (real accounts, online A/B testing,
 recent catalogue, hardening).
 - **Deployment:** the website is live at https://redbox-recommender.vercel.app. The API is built and
-  tested for its Hugging Face Space and goes live with one command once a Hugging Face token with write
-  permission is set up. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+  tested, and goes live on Google Cloud Run's free tier with one command (`deploy/cloudrun/deploy.py`)
+  once a Google Cloud project is set up. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+- **Not in this repository:** datasets and trained bundles (MovieLens may not be redistributed; rebuild
+  them with the commands below), and the landing page's film stills, which are copyrighted: add your own
+  in `frontend/public/hero/stills/` (listed in `frontend/src/lib/stills.ts`).
 
 Plan: [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) · Report: [docs/report/](docs/report/)
 
